@@ -4,6 +4,10 @@ const Event = require('../models/Event');
 exports.syncEvents = async (user, token) => {
   console.log('Received user in syncEvents:', user);
 
+  // Check if tokens exist
+  console.log('Google Access Token:', user.googleAccessToken || 'Not available');
+  console.log('Google Refresh Token:', user.googleRefreshToken || 'Not available');
+
   if (!user.googleAccessToken || !user.googleRefreshToken) {
     throw new Error('Missing Google access or refresh token');
   }
@@ -14,10 +18,20 @@ exports.syncEvents = async (user, token) => {
     refresh_token: user.googleRefreshToken,
   });
 
+  // Check if credentials are set correctly
+  console.log('OAuth2 Credentials Set:', oauth2Client.credentials);
+
+  // Automatically refresh access token if expired
   oauth2Client.on('tokens', (tokens) => {
+    console.log('New tokens received:', tokens);
+    
     if (tokens.refresh_token) {
+      console.log('New refresh token detected:', tokens.refresh_token);
       user.googleRefreshToken = tokens.refresh_token;
+    } else {
+      console.log('No new refresh token received');
     }
+
     user.googleAccessToken = tokens.access_token;
     user.save(); // Save updated tokens
   });
