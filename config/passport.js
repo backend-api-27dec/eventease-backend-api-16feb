@@ -12,15 +12,16 @@ passport.use(new GoogleStrategy({
   passReqToCallback: true
 },
 async (req, accessToken, refreshToken, profile, done) => {
-  console.log('GoogleStrategy callback executed');
+  console.log('🔹 GoogleStrategy callback executed');
   console.log('🔹 Received accessToken:', accessToken);
   console.log('🔹 Received refreshToken:', refreshToken || '❌ Not received');
 
   try {
     let user = await User.findOne({ googleId: profile.id });
-    console.log('User lookup:', user);
+    console.log('🔍 User lookup:', user);
 
     if (!user) {
+      // Creating a new user if not found
       user = new User({
         googleId: profile.id,
         name: profile.displayName,
@@ -32,20 +33,16 @@ async (req, accessToken, refreshToken, profile, done) => {
       await user.save();
       console.log('✅ New user created:', user);
     } else {
+      // Updating tokens if the user exists
       user.googleAccessToken = accessToken;
-      if (refreshToken) { // Only update if refreshToken is provided
+      if (refreshToken) { // Only update refreshToken if received
         user.googleRefreshToken = refreshToken;
       }
       await user.save();
       console.log('✅ User updated with new tokens:', user);
     }
 
-    return done(null, user);
-  } catch (err) {
-    console.error('❌ Error in GoogleStrategy:', err);
-    return done(err, false);
-  }
-}
+    // Generate JWT token for authentication
     const payload = {
       user: {
         id: user.id,
@@ -58,25 +55,27 @@ async (req, accessToken, refreshToken, profile, done) => {
     const jwtToken = jwt.sign(payload, jwtSecret, { expiresIn: '1h' });
     user.token = jwtToken;
 
-    console.log('Generated JWT token:', jwtToken);
+    console.log('🔐 Generated JWT token:', jwtToken);
 
+    // Send welcome email after successful authentication
     sendWelcomeEmail(user, req);
 
     return done(null, user);
   } catch (err) {
-    console.error('Error in GoogleStrategy:', err);
+    console.error('❌ Error in GoogleStrategy:', err);
     return done(err, false);
   }
-}
-));
+}));
 
+// Serialize user for session storage
 passport.serializeUser((user, done) => {
-  console.log('Serializing user:', user);
+  console.log('📝 Serializing user:', user);
   done(null, user.id);
 });
 
+// Deserialize user from session
 passport.deserializeUser(async (id, done) => {
-  console.log('Deserializing user with id:', id);
+  console.log('🔄 Deserializing user with ID:', id);
   try {
     const user = await User.findById(id);
     done(null, user);
