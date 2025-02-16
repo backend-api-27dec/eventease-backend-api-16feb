@@ -13,6 +13,9 @@ passport.use(new GoogleStrategy({
 },
 async (req, accessToken, refreshToken, profile, done) => {
   console.log('GoogleStrategy callback executed');
+  console.log('🔹 Received accessToken:', accessToken);
+  console.log('🔹 Received refreshToken:', refreshToken || '❌ Not received');
+
   try {
     let user = await User.findOne({ googleId: profile.id });
     console.log('User lookup:', user);
@@ -27,14 +30,22 @@ async (req, accessToken, refreshToken, profile, done) => {
         googleRefreshToken: refreshToken
       });
       await user.save();
-      console.log('New user created:', user);
+      console.log('✅ New user created:', user);
     } else {
       user.googleAccessToken = accessToken;
-      user.googleRefreshToken = refreshToken;
+      if (refreshToken) { // Only update if refreshToken is provided
+        user.googleRefreshToken = refreshToken;
+      }
       await user.save();
-      console.log('User updated with new tokens:', user);
+      console.log('✅ User updated with new tokens:', user);
     }
 
+    return done(null, user);
+  } catch (err) {
+    console.error('❌ Error in GoogleStrategy:', err);
+    return done(err, false);
+  }
+}
     const payload = {
       user: {
         id: user.id,
