@@ -18,6 +18,8 @@ async (req, accessToken, refreshToken, profile, done) => {
   console.log('🔹 GoogleStrategy callback executed');
   console.log('🔹 Access Token:', accessToken);
   console.log('🔹 Refresh Token:', refreshToken || '❌ Not received');
+  console.log('🔹 OAuth Scope:', profile._json.scope || '❌ Not available');
+
 
   try {
     let user = await User.findOne({ googleId: profile.id });
@@ -37,9 +39,11 @@ async (req, accessToken, refreshToken, profile, done) => {
     } else {
       // Updating user tokens
       user.googleAccessToken = accessToken;
-      if (refreshToken) { 
-        user.googleRefreshToken = refreshToken; // ✅ Save new refresh token if available
-      }
+     if (refreshToken) { 
+  user.googleRefreshToken = refreshToken; 
+} else if (!user.googleRefreshToken) {
+  console.warn('⚠️ No refresh token received, and user does not have one saved.');
+}
       await user.save();
       console.log('✅ User updated with new tokens:', user);
     }
