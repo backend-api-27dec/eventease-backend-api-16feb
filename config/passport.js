@@ -44,12 +44,6 @@ async (req, accessToken, refreshToken, profile, done) => {
       console.log('✅ User updated with new tokens:', user);
     }
 
-    return done(null, user);
-  } catch (err) {
-    console.error('❌ Error in GoogleStrategy:', err);
-    return done(err, false);
-  }
-}));
     // Generate JWT token for authentication
     const payload = {
       user: {
