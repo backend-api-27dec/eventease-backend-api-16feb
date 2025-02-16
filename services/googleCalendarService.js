@@ -4,13 +4,16 @@ const Event = require('../models/Event');
 exports.syncEvents = async (user, token) => {
   console.log('Received user in syncEvents:', user);
 
+  if (!user.googleAccessToken || !user.googleRefreshToken) {
+    throw new Error('Missing Google access or refresh token');
+  }
+
   const oauth2Client = new google.auth.OAuth2();
   oauth2Client.setCredentials({
     access_token: user.googleAccessToken,
     refresh_token: user.googleRefreshToken,
   });
 
-  // Automatically refresh access token if expired
   oauth2Client.on('tokens', (tokens) => {
     if (tokens.refresh_token) {
       user.googleRefreshToken = tokens.refresh_token;
@@ -32,7 +35,7 @@ exports.syncEvents = async (user, token) => {
         description: event.description,
         start: { dateTime: event.date.toISOString(), timeZone: 'UTC' },
         end: { dateTime: new Date(new Date(event.date).getTime() + event.duration * 60 * 1000).toISOString(), timeZone: 'UTC' },
-        attendees: event.participants
+        attendees: event.participants,
       };
 
       let createdEvent;
@@ -59,10 +62,10 @@ exports.syncEvents = async (user, token) => {
     console.log('All promises resolved');
     return results;
   } catch (error) {
-    console.error('Error fetching events from database or syncing with Google Calendar:', error);
+    console.error('Error syncing with Google Calendar:', error);
 
     if (error.code === 403) {
-      console.error('Insufficient Permission: Make sure the token has the correct scopes');
+      console.error('Insufficient Permission: Ensure the token has the correct scopes');
     }
 
     throw error;
