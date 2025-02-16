@@ -9,39 +9,47 @@ passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
   callbackURL: "https://eventease-backend-api-16feb.onrender.com/api/auth/google/callback",
-  passReqToCallback: true
+  passReqToCallback: true,
+  scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar'],
+  accessType: 'offline',  // ✅ Request offline access to get a refresh token
+  prompt: 'consent' // ✅ Force Google to send a refresh token every time
 },
 async (req, accessToken, refreshToken, profile, done) => {
   console.log('🔹 GoogleStrategy callback executed');
-  console.log('🔹 Received accessToken:', accessToken);
-  console.log('🔹 Received refreshToken:', refreshToken || '❌ Not received');
+  console.log('🔹 Access Token:', accessToken);
+  console.log('🔹 Refresh Token:', refreshToken || '❌ Not received');
 
   try {
     let user = await User.findOne({ googleId: profile.id });
-    console.log('🔍 User lookup:', user);
 
     if (!user) {
-      // Creating a new user if not found
+      // Creating a new user
       user = new User({
         googleId: profile.id,
         name: profile.displayName,
         email: profile.emails[0].value,
         role: 'user',
         googleAccessToken: accessToken,
-        googleRefreshToken: refreshToken
+        googleRefreshToken: refreshToken || null
       });
       await user.save();
       console.log('✅ New user created:', user);
     } else {
-      // Updating tokens if the user exists
+      // Updating user tokens
       user.googleAccessToken = accessToken;
-      if (refreshToken) { // Only update refreshToken if received
-        user.googleRefreshToken = refreshToken;
+      if (refreshToken) { 
+        user.googleRefreshToken = refreshToken; // ✅ Save new refresh token if available
       }
       await user.save();
       console.log('✅ User updated with new tokens:', user);
     }
 
+    return done(null, user);
+  } catch (err) {
+    console.error('❌ Error in GoogleStrategy:', err);
+    return done(err, false);
+  }
+}));
     // Generate JWT token for authentication
     const payload = {
       user: {
