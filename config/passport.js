@@ -11,15 +11,15 @@ passport.use(new GoogleStrategy({
   callbackURL: "https://eventease-backend-api-16feb.onrender.com/api/auth/google/callback",
   passReqToCallback: true,
   scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar'],
-  accessType: 'offline',  // ✅ Request offline access to get a refresh token
-  prompt: 'consent' // ✅ Force Google to send a refresh token every time
+  accessType: 'offline',  // ✅ Request offline access for refresh token
+  prompt: 'consent',  // ✅ Ask for re-consent each time
+  approval_prompt: 'force' // ✅ Forces Google to reissue a refresh token
 },
 async (req, accessToken, refreshToken, profile, done) => {
   console.log('🔹 GoogleStrategy callback executed');
   console.log('🔹 Access Token:', accessToken);
   console.log('🔹 Refresh Token:', refreshToken || '❌ Not received');
-  console.log('🔹 OAuth Scope:', profile._json.scope || '❌ Not available');
-
+  console.log('🔹 OAuth Scope:', req.query.scope || '❌ Not available');
 
   try {
     let user = await User.findOne({ googleId: profile.id });
@@ -39,11 +39,11 @@ async (req, accessToken, refreshToken, profile, done) => {
     } else {
       // Updating user tokens
       user.googleAccessToken = accessToken;
-     if (refreshToken) { 
-  user.googleRefreshToken = refreshToken; 
-} else if (!user.googleRefreshToken) {
-  console.warn('⚠️ No refresh token received, and user does not have one saved.');
-}
+      if (refreshToken) { 
+        user.googleRefreshToken = refreshToken; 
+      } else if (!user.googleRefreshToken) {
+        console.warn('⚠️ No refresh token received, and user does not have one saved.');
+      }
       await user.save();
       console.log('✅ User updated with new tokens:', user);
     }
