@@ -10,10 +10,14 @@ passport.use(new GoogleStrategy({
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
   callbackURL: "https://eventease-backend-api-16feb.onrender.com/api/auth/google/callback",
   passReqToCallback: true,
-  scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar'],
+  scope: [
+    'profile', 
+    'email', 
+    'https://www.googleapis.com/auth/calendar.events'
+  ],
   accessType: 'offline',  // ✅ Request offline access for refresh token
-  prompt: 'consent',  // ✅ Ask for re-consent each time
-  approval_prompt: 'force' // ✅ Forces Google to reissue a refresh token
+  prompt: 'select_account',  // ✅ Ask user to select an account (triggers new consent)
+  approval_prompt: 'force'  // ✅ Force Google to issue a new refresh token
 },
 async (req, accessToken, refreshToken, profile, done) => {
   console.log('🔹 GoogleStrategy callback executed');
